@@ -1,0 +1,65 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2513
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica-Bold;\f1\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;\red27\green31\blue35;\red255\green255\blue255;}
+{\*\expandedcolortbl;;\cssrgb\c14118\c16078\c18431;\cssrgb\c100000\c100000\c100000;}
+\margl1440\margr1440\vieww25620\viewh14900\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\b\fs36 \cf0 \ul \ulc0 Steps Used for Processing Dealer files from Provider 1 and Provider 2 :
+\f1\b0\fs24 \ulnone \
+\
+
+\f0\b\fs28 Applications and Database used for Data Processing and Testing :
+\f1\b0\fs24 \
+
+\fs26 1. Amazon Redshift SQL : I used AWS Redshift as the database to ingest the test data. ( For reference : https://docs.aws.amazon.com/redshift/latest/dg/welcome.html )\
+2. Dbeaver : Used Dbeaver as a programming Interface ( For reference : https://dbeaver.io/)\
+3. S3 bucket - Stored the files manually to the s3 bucket and used a copy command to copy the data from the files to the database. (For reference : https://aws.amazon.com/s3/)\
+4. Microsoft Excel for Analysis and Visualization ( I usually use Tableau for Visualization of ETL data )
+\fs24 \
+\
+
+\f0\b\fs28 Goal: 
+\f1\b0\fs26 To \cf2 \cb3 \expnd0\expndtw0\kerning0
+Standardize the raw feed files provided and load them into a database and build a feed ingestion framework.
+\fs24 \
+\
+
+\f0\b\fs28 Framework: \
+
+\f1\b0\fs26 1. Downloaded the 2 files from Github and upladed them to the s3 bucket (Assuming the files will be provided to us either manually or automatically uploaded to an sftp/pftp or S3 bucket)\
+\
+2. Created  staging tables for Provider 1 Feed: \cf0 \cb1 \kerning1\expnd0\expndtw0 bi_userdb.stg_test_isha_drop_1 and  bi_userdb.test_isha_drop_1.I used a test schema \'93bi_userdb\'94 to create the tables. In the table : bi_userdb.stg_test_isha_drop_1, I am copying the raw fields directly and using bi_userdb.test_isha_drop_1 to store the required fileds ( as shown in schema mapping). The logic insures there are no duplocates for everytime we receive a new feed. \
+(Please see the database output attached in Provider_1_database_extract.csv)\
+\
+3. Created \cf2 \cb3 \expnd0\expndtw0\kerning0
+ a staging table for Provider 2 Feed: \cf0 \cb1 \kerning1\expnd0\expndtw0 bi_userdb.stg_test_isha_drop_2, bi_userdb.test_isha_drop_2  and repeated the Step 2 for Provider Feed 2.  This feed has few missing fields and values (discussed later in the sheet)\
+\
+4. I decided the hash value in our final table : bi_userdb.isha_dealer_data  to be a concatenation of vin + mileage + msrp as mileage and msrp of a vehicle can change ( assuming we are not tracking an active date and expiry date for the scd).\
+For hashing : The concatenation of the 3 values were hashed using MD5 algorithm to track changes to the feed. \
+\
+5. A temp table was created using the union of the 2 tables : bi_userdb.test_isha_drop_1 and bi_userdb.test_isha_drop_2  and finally inserted into our main table : bi_userdb.isha_dealer_data after making sure we are tracking the changes by mapping the hash values of the temp table and our final table.\
+\
+6. To create an ETL pipeline, we can create a stored procedure and call it in our ETL Tool.  \
+
+\fs24 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\b\fs28 \cf0 Observations and Actions:
+\f1\b0  
+\fs24 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs26 \cf0 1. The listprice value was not provided in the Provider feed 2 hence the value for msrp was kept the same for new and used cars. \
+\
+2. We have a record with a 
+\f0\b \'91Missing\'92
+\f1\b0  vin in Provider Feed 2. I have ingested the missing vin record into our main table : bi_userdb.isha_dealer_data and changed the DDL of the table to handle the missing vin. ( I was unsure if we wanted to keep this record or delete it and handle missing vins in our logic).\
+\
+3. Replaced the \'91|\'92 in the image field with \'91,\'92 in the Provider Feed 2 to standardise the image field values in our final table \
+\
+4. Dealer Certified Values are missing in the Feed2 . Ingested the null values instead. \
+\
+
+\fs24 \
+}
